@@ -1,0 +1,10 @@
+base
+Rcpp
+trialr
+dplyr
+tidybayes
+ggplot2
+tibble
+purrr
+tidyr
+stringr
