@@ -15,11 +15,11 @@ title:
   # For running headers, if needed
   # short:     "\\pkg{foo}: A Capitalized Title"
 abstract: >
-  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+  This manuscript introduces an \proglang{R} package called \pkg{trialr} that implements a collection of clinical trial methods in \proglang{Stan} and \proglang{R}. In this article, we explore three methods in detail. The first is the continual reassessment method for conducting phase I dose-finding trials that seek a maximum tolerable dose. The second is EffTox, a dose-finding design that scrutinises doses by joint efficacy and toxicity outcomes. The third is the augmented binary method for modelling the probability of treatment success in phase II oncology trials with reference to repeated measures of continuous tumour size and binary indicators of treatment failure. We emphasise in this article the benefits that stem from having access to posterior samples, including flexible inference and powerful visualisation. We hope that this package encourages the use of Bayesian methods in clinical trials.
 keywords:
   # at least one keyword must be supplied
-  formatted: [clinical trial, bayesian, dose finding, "\\proglang{R}", "\\proglang{Stan}"]
-  plain:     [clinical trial, bayesian, dose finding, R, Stan]
+  formatted: [clinical trial, bayesian, dose finding, phase II, "\\proglang{R}", "\\proglang{Stan}"]
+  plain:     [clinical trial, bayesian, dose finding, phase II, R, Stan]
 preamble: >
   \usepackage{amsmath}
 # bibliography: [bibliography.bib]
@@ -97,13 +97,13 @@ There are several other R-packages that implement the Bayesian CRM in \proglang{
 \pkg{bcrm} and \pkg{crmPack} support MCMC via \proglang{JAGS} and \proglang{WinBUGS}.
 To the best of our knowledge, \pkg{trialr} is the only package on CRAN to implement the CRM and EffTox in \proglang{Stan}, and the only package on CRAN to implement the AugBin method.
 
-To avoid large-scale repetition of material in previous publications on CRM software \citep{bcrm, Cheung2011}, we focus the dose-finding aspects of this article on functions related to dose-transtions pathways \citep{Yap2017, Brock2017a}, a tool to aid trial planning.
+To avoid large-scale repetition of material in previous publications on CRM software \citep{bcrm, Cheung2011}, we focus the dose-finding aspects of this article on functions related to dose transtion pathways \citep{Yap2017, Brock2017a}, a tool to aid trial planning.
 This approach is considered for both the CRM and EffTox designs.
 Then we introduce the AugBin method for single arm trials with two post-baseline analyses.
 
-\pkg{trialr} was first added to CRAN in 2017 with Stan implementations of EffTox, a hierarchical model for analysing responses to a single drug in several related subtypes of a disease \citet{Thall2003}, and a joint-model for analysing co-primary efficacy and toxicity outcomes when baseline covariate information is available. <!-- TODO: cite brock2019 when I finally get the DOI -->
+\pkg{trialr} was first added to CRAN in 2017 with Stan implementations of EffTox, a hierarchical model for analysing responses to a single drug in several related subtypes of a disease \citep{Thall2003}, and a joint-model for analysing co-primary efficacy and toxicity outcomes when baseline covariate information is available \citep{brockMethodsIncreaseEfficiency}. <!-- TODO: cite brock2019 when I finally get the DOI or cite thesis. -->
 Successive updates have seen the addition of the CRM and AugBin models.
-\pkg{trialr} relies heavily on \pkg{tidyverse} \citep{tidyverse} packages to create a modern workflow in \proglang{R} for Bayesian approaches to early-phase clinical trials. 
+\pkg{trialr} relies heavily on \pkg{tidyverse} \citep{tidyverse} packages to create a modern workflow in \proglang{R} for Bayesian approaches to clinical trials. 
 
 
 \newpage
@@ -139,16 +139,15 @@ The CRM variants currently implemented in `trialr` are listed in Table \ref{tab:
   \label{tab:crm}
 \end{table}
 
-A core assumption of the CRM and dose-escalation methods in general, is that the probability of toxicity increases with dose.
-The slope parameter $\beta$ is exponentiated in some of the models in Table \ref{tab:crm} to ensure a positive value.
-In the model with gamma prior, this step is not necessary because the prior constrains the posterior to take only positive values.
+To ensure that the probability of toxicity increases with dose, the slope parameter $\beta$ is exponentiated in some of the models in Table \ref{tab:crm}.
+In the model with gamma prior, this step is not necessary because the prior constrains the posterior to admit only positive values.
 
 For the purposes of statistical modelling, the explanatory dose variables $d_k$ are codified such that
 
 $$ p_k = F(d_k, \hat{\theta}) , $$
 
 where $\hat{\theta}$ is the vector of prior expected values of the elements of $\theta$.
-That is, the $d_k$ are derived so that, using the prior expected value of each model parameter, the prior expected probability of DLT at $d_k$ is $p_k$.
+That is, the $d_k$ are derived so that using the prior expected value of each model parameter, the prior expected probability of DLT at $d_k$ is $p_k$.
 \citet{Cheung2011} calls the $d_k$ \textit{dose-labels} to distinguish them from the actual dose units like ``10 mg'' that a clinician might actually administer to a patient.
 
 For patient $i$, let $Y_i$ be a random variable taking values $\{0, 1\}$ reflecting the absence and presence of DLT, and $x_i \in \left\{ d_1, ..., d_K \right\}$ be the dose administered.
@@ -159,12 +158,12 @@ $$ L_I(\theta) = \prod_{i=1}^I \left\{ F(x_i, \theta) \right\}^{Y_i} \left\{ 1 -
 This quantity can either be maximised with respect to $\theta$ to obtain the maximum likelihood estimate, or augmented with priors and analysed in a Bayesian way.
 CRM was originally published as a Bayesian design and that is the approach we take in `trialr` using Stan.
 
-\citet{Cheung2000} introduced the notion of weighting the $Y_i$ to reflect the extend to which they have been evaluated.
+\citet{Cheung2000} introduced the notion of weighting the $Y_i$ to reflect the extent to which they have been evaluated.
 For instance, if a patient is 50\% of the way through the evaluation period without having yet experienced toxicity, we might interpret them as providing an observation $Y_i = 0$ with weight 0.5.
-This leads to the weighted likelihood statement
+This leads to the weighted likelihood statement:
 $$ L_I(\theta) = \prod_{i=1}^I \left\{ w_i F(x_i, \theta) \right\}^{Y_i} \left\{ 1 - w_i F(x_i, \theta) \right\}^{1-Y_i}, $$
 as used in the TITE-CRM design.
-This insight faciltated the study of long-term toxicity events, without the requirement that each patient complete the evaluation period before they contribute information to the dose selection analysis.
+This insight faciltated the study of long-term toxicity events, without the requirement that each patient complete the evaluation period before they contribute information to the dose selection decision.
 
 CRM models are accessed in \pkg{trialr} primarily through the `stan_crm` function, as described below.
 
@@ -173,7 +172,7 @@ CRM models are accessed in \pkg{trialr} primarily through the `stan_crm` functio
 The EffTox design \citep{Thall2004, Thall2006, Thall2014} conducts dose-finding clinical trials where both efficacy and toxicity events guide dose selection.
 This contrasts methods like 3+3 and CRM where dose selection is determined by toxicity events only.
 It is no longer assumed that higher doses are implicitly more likely to be beneficial to patients.
-Instead, EffTox assigns doses attractiveness or \textit{utility} scores to doses that trade-off the estimated probabilities of efficacy and toxicity.
+Instead, EffTox calculates attractiveness or \textit{utility} scores for doses that trade-off the estimated probabilities of efficacy and toxicity.
 The design iteratively seeks the dose with the highest utility score.
 We will call this the \textit{optimum biological dose} (OBD) to distinguish it from the MTD and the pratice of escalating under assumed montonically increasing efficacy.
 When recommending the next dose, EffTox does not blindly recommend the prevailing OBD.
@@ -201,6 +200,7 @@ $$\pi_{a,b}(x, \theta) = (\pi_E)^a (1-\pi_E)^{1-a} (\pi_T)^b (1-\pi_T)^{1-b} + \
 where $\psi$ is a parameter that measures the strength of association between the co-primary outcomes, and $(x, \theta)$-notation has been suppressed on the right-hand side for brevity.
 Normal priors are specified for the elements of $\theta$.
 
+Let $\mathcal{D}$ represent the trial data collected hitherto.
 At each dose update decision, the dose $x$ is acceptable if
 
 $$\text{Pr}\left\{ \pi_T(x, \boldsymbol{\theta}) < \overline{\pi}_T | \mathcal{D} \right\} > p_T,$$
@@ -218,18 +218,18 @@ The utility of dose $x$, with efficacy $\pi_E(x, \theta)$ and toxicity $\pi_T(x,
 $$u(\pi_E, \pi_T) = 1 - \left( \left(\frac{1-\pi_E}{1-\pi_{1,E}^*}\right)^p + \left(\frac{\pi_T}{\pi_{2,T}^*}\right)^p \right) ^ \frac{1}{p}$$
 
 where $p$ is calculated to intersect the points $(\pi_{1,E}^*, 0)$, $(1, \pi_{2,T}^*)$ and $(\pi_{3,E}^*, \pi_{3,T}^*)$ in the efficacy-toxicity plane.
-We will refer to these as _hinge points_ but that is not nomenclature proposed by the authors.
+We will refer to these as _hinge points_ but that is not nomenclature used by the authors.
 
 At the dose selection decision, the dose-level from the subset of doses that are acceptable with maximal utility is selected to be given to the next patient or cohort.
 If there are no acceptable doses, the trial stops and no dose is recommended.
 
-There are several published EffTox examples, including explanations and tips on parameter choices  \citep{Thall2004, Thall2006, Thall2014, Brock2017a}.
+There are several published EffTox examples, including explanations and advice on parameter choices  \citep{Thall2004, Thall2006, Thall2014, Brock2017a}.
 
 The MD Anderson Cancer Center publishes software\footnote{see https://biostatistics.mdanderson.org/SoftwareDownload/SingleSoftware/Index/2} to perform calculations and simulations for EffTox trials.
 The software is available for Windows in compiled-form.
 Thus, trialists cannot run the software on Mac or Linux unless via a virtual machine or emulator.
 Furthermore, they may not alter the behaviour of the model.
-\citep{Brock2017a} describe a clinical trial scenario where some alteration to the default model behaviour would have been preferable.
+\citet{Brock2017a} describe a clinical trial scenario where some alteration to the default model behaviour would have been preferable.
 It was this that prompted the author to write the open-source implementation provided in `trialr`.
 
 
@@ -242,12 +242,12 @@ Up to five so-called \textit{target lesions} are identified at baseline and the 
 A \textit{complete response} is said to have occurred post-baseline when all tumour lesions disappear.
 A \textit{partial response} occurs when the aggregate diameter of the target lesions shrinks by at least 30% and no new lesions are detected.
 Commonly, the complete and partial response events are combined to form an <!-- \textit{Progressive disease} is said to have occurred at post-baseline assessment when the aggregate diameter of the target lesions increases by at least 20% or new lesions are detected. -->
-\textit{objective response} category, and this is used to calculate the binary response rate in the trial.
+\textit{objective response} category, and this is used to calculate the binary response rate in a trial.
 
-Statisticians are aware that this dichotomisation of a continuous underlying measure leads to information loss and less-efficient analysis.
+Statisticians are aware that this dichotomisation of a continuous underlying measure leads to information loss and less efficient analysis.
 However, responder analysis is endemic in cancer trials.
 In response, \citet{Wason2013} introduced the Augmented Binary model.
-It analyses the continuous log-tumour size ratio, whilst building in mechanisms for so-called \textit{non-shrinkage failures}, like the manifestation of new lesions, that preclude success, even if requisite tumour shrinkage is observed.
+It analyses the continuous log-tumour size ratio, whilst building in mechanisms for so-called \textit{non-shrinkage failures} that signal lack of success, such as the manifestation of new lesions, even if requisite tumour shrinkage is observed.
 Wason & Seaman introduced versions of their model for single-arm and randomised groups trials.
 We describe here the single-arm variant.
 
@@ -343,7 +343,7 @@ fit %>%
 ```
 
 This is particularly valuable because it facilitates inference and visualisation.
-For instance, each posterior sample for $\beta$ generates a dose-vs-Prob(DLT) curve, and each of these nominates a candidate for the MTD, being the dose with estimated Prob(DLT) closest to the toxicity target.
+For instance, each posterior sample for $\beta$ generates a dose-DLT curve, and each of these nominates a candidate for the MTD, being the dose with estimated Prob(DLT) closest to the toxicity target.
 We can plot some of these generated curves, colouring each by the MTD that they nominate, to visualise the level of uncertainty still inherent in the situation at this early stage.
 
 ```{r, fig.cap="Posterior dose-toxicity curves generated by a CRM model fit to five patients' data."}
@@ -366,7 +366,9 @@ fit %>%
 ```
 
 We plot just 200 curves to avoid saturating the plot.
-We could also calculate the posterior probability that each dose is the true MTD according to this model.
+We see that curves that nominate each of the five doses as the implied MTD are readily generated.
+
+Using each of the posterior dose-DLT curves, let us calculate the posterior probability that each dose is the MTD according to this model.
 ```{r}
 mtd_candidates %>% 
   count(mtd) %>% 
@@ -375,7 +377,7 @@ mtd_candidates %>%
 
 This matches the `ProbMTD` statistics in the model output above.
 
-\citet{Yap2017} introduced \textit{dose transition pathways} (DTPs) as the link between model-based statistical dose-finging algorithms and simple decision making.
+\citet{Yap2017} introduced \textit{dose transition pathways} (DTPs) as the link between model-based statistical dose-finding algorithms and simple decision making.
 A pathway in a dose-finding trial is simply a sequence of doses that were delivered to patients and the outcomes that the patients experienced.
 
 Consider a trial that has already treated four patients in two cohorts:
@@ -385,7 +387,7 @@ outcomes <- '2NN 3TN'
 ```
 
 Beyond questioning what dose will be advised for the third cohort, we might wonder about all the doses could possibly be advised for the fourth and fifth cohorts.
-This might have material consequences for the amount of drug that is to be manufactured and shipped to research pharmacies.
+This might have material consequences for the amount of drug that is to be manufactured and shipped to sites.
 \pkg{trialr} provides flexible methods to automate such analyses.
 
 For the purposes of this example, let us assume we are using the `empiric` model form and a unit normal prior on $\beta$, and the following parameters:
@@ -403,7 +405,7 @@ paths1 <- crm_dtps(skeleton = skeleton, target = target, model = 'empiric',
 ```
 
 This function uses many of the same parameters as `stan_crm`.
-The `previous_outcomes` parameter describes the path the trial has already taken; each future path starts from here.
+The `previous_outcomes` parameter describes the path the trial has already taken; each calculated future path starts from here.
 It can be omitted to reflect a trial that has not yet started.
 The `cohort_sizes` parameter controls the number and size of future cohorts to consider.
 Each cohort of $n$ may result in 0, 1, 2,..., or $n$ patients experiencing DLT.
@@ -434,15 +436,15 @@ paths2 <- crm_dtps(skeleton = skeleton, target = target, model = 'empiric',
 
 Here, a pathway will stop if ever
 \begin{equation}
-Pr(\pi_T(x_1) > 0.35 | X) > 0.7,
+Pr( F(d_1, \beta) > 0.35 | \mathcal{D}) > 0.7,
 \end{equation}
-where $\pi_T(x)$ is the posterior probability of DLT at dose $x$.
+i.e. if there is at least a 70\% chance that the probability of DLT at the lowest dose exceeds 35\%.
 
-The paths are shown in Figure \ref{fig:crm_dtps_graph}.
+These paths are shown in Figure \ref{fig:crm_dtps_graph}.
 Code to recreate this graph appears in the Appendix.
 We see that the subsequent path `2TTT 1TTT` yields the understandable decision to stop, but that every other path selects a dose.
 We will only advise as high as dose 4 if no DLTs are seen in the next 6 patients.
-This level of foresight and transparency underpins our motivation to use dose pathways, particularly in a visual manner.
+This level of foresight and transparency underpins our motivation to use dose pathways, particularly via an effective visualisation like Figure \ref{fig:crm_dtps_graph}.
 
 \begin{figure}
   \centering
@@ -460,7 +462,7 @@ paths2_df <- as_tibble(paths2)
 paths2_df %>% head()
 ```
 
-Each node has a single row in this table.
+Each node in the graph has a single row in this table.
 The variables that define the tree structure are prefixed with a period.
 Whilst this tall format is useful for some purposes, like creating graphs like Figure \ref{fig:crm_dtps_graph}, dose-transition pathways are perhaps most intuitively tabulated in a wide format.
 That task is accomplished by the `spread_paths` function, that will join `.node` to `.parent` at each `.depth` to create a wide view of DTPs.
@@ -478,7 +480,7 @@ We demonstrate a similar approach in the next section with EffTox.
 
 Fitting TITE-CRM models is also supported in \pkg{trialr}, again through the `stan_crm` function.
 The outcome syntax used above, however, ceases to be succinct and useful when each patient is associated an individual weight.
-Thus, when fitting the TITE-CRM, we provide vectors for the doses fit, the binary toxicity outcomes observed, and the weight given to each observation.
+Thus, when fitting the TITE-CRM, we provide vectors for the doses given, the binary toxicity outcomes observed, and the weight for each observation.
 For instance, in the example below we calculate the next dose in a trial that has partially evaluated four patients at dose 3, as described by \citet[p.124]{Cheung2011}.
 No patient has yet experienced DLT but they are between 28 and 73 days through a 126-day evaluation window.
 
@@ -500,12 +502,12 @@ This is useful in modern oncology treatments like small molecules and immunother
 
 The probability model for EffTox described above uses six parameters.
 The extra complexity naturally means it is more challenging to select priors.
-\citet{Thall2014} describe an algorithm that selects hyperparameters for weakly informative normal priors on $\alpha, \beta, \gamma$ and $\zeta$ so that the expected prior probabilities of efficacy and toxicity at each dose match investigator-elicited values.
+\citet{Thall2014} describe an optimisation algorithm that selects hyperparameters for weakly informative normal priors on $\alpha, \beta, \gamma$ and $\zeta$ so that the expected prior probabilities of efficacy and toxicity at each dose match investigator-elicited values.
 The priors for $\eta$ and $\psi$ are fixed at $N(0, 0.2)$ and $N(0, 1)$ respectively.
 
 For example, expecting efficacy probabilities (0.2, 0.4, 0.6, 0.8, 0.9) and toxicity probabilities (0.02, 0.04, 0.06, 0.08, 0.10) in a five-dose example, \citet{Thall2014} choose the parameter priors in Table \ref{tab:efftox_priors}.
-\pkg{trialr} does not currently implement the algorithm to generate these hyperparameters but will do in future.
-In the meantime, the official EffTox software implements the algorithm.
+The hyperparameter values can be calculated using the MD Anderson EffTox software.
+This algorithm is not currently implemented in \pkg{trialr}.
 
 \begin{table}
   \centering
@@ -603,22 +605,21 @@ In each, the value of the non-varying parameters takes the value listed in Table
 We see in each panel of each plot that dose-level 5 is overwhelmingly expected to have the highest utility score.
 As the standard deviation hyperparameters increase, more probability is placed on dose 1 being optimal.
 The probabilities of doses 2 to 4 barely change.
-The prior probabilities that each dose is optimal are driven primarily by the location of the parameter priors rather than the scale.
 
 By way of illustration, let us continue with Thall \textit{et al.}'s parameterisation.
 The authors seek the most attractive dose of a drug from (1, 2, 4, 6.6, 10) mcL/kg that satisfies both
 
 \begin{equation}
-Pr(\pi_E(x_i) > 0.5 | X) > 0.1
+Pr(\pi_E(x_i) > 0.5 | \mathcal{D}) > 0.1
 \end{equation}
 
 and 
 
 \begin{equation}
-Pr(\pi_T(x_i) <0.65 | X) > 0.1
+Pr(\pi_T(x_i) < 0.3 | \mathcal{D}) > 0.1
 \end{equation}
 
-where the neutral utility contour intersects the hinge points $(\pi_E, \pi_T) = (0.5, 0)$, $(1, 0.65)$ and $(0.7, 0.25)$.
+where the neutral utility contour intersects the hinge points $(\pi_{1,E}^*, 0) = (0.5, 0)$, $(1, \pi_{2,T}^*) = (1, 0.65)$ and $(\pi_{3,E}^*, \pi_{3,T}^*) = (0.7, 0.25)$.
 Let us fit this model to the outcomes `1NNN 2ENN`:
 
 ```{r, message = FALSE}
@@ -639,9 +640,11 @@ fit <- stan_efftox(outcome_str = outcomes,
 fit
 ```
 
+The parameters `eff0`, `tox1`, `eff_star` and `tox_star` reflect the values $\pi_{1,E}^*$, $\pi_{2,T}^*$, $(\pi_{3,E}^*$ and $\pi_{3,T}^*$.
+
 We see that dose-level 3 is recommended for the next cohort.
-Even though doses 4 and 5 have higher estimated utility scores, they are not recommended because dose 3 has not yet been tested.
-`ProbAccEff` and `ProbAccTox` estimate the probability that the estimated rates of efficacy and toxicity are the desirable side of 0.5 and 0.65, respectively.
+Even though doses 4 and 5 have higher estimated utility scores, they are not recommended because dose 3 has not yet been given.
+`ProbAccEff` and `ProbAccTox` estimate the probability that the estimated rates of efficacy and toxicity are the desirable sides of 0.5 and 0.3, respectively.
 Dose 1 is not acceptable because `ProbAccEff` is less than 0.1.
 The utility values implied by the posterior mean probabilities of efficacy and toxicity are shown in Figure \ref{fig:efftox_contours}, created using the command:
 
@@ -649,13 +652,15 @@ The utility values implied by the posterior mean probabilities of efficacy and t
 efftox_contour_plot(fit)
 ```
 
+Doses that are closer to the lower-right corner of Figure \ref{fig:efftox_contours}, reflecting guarenteed efficacy and no toxicity, have higher utility scores.
+
 Using the posterior samples of the utility scores at each dose, it is possible to estimate the probability that each dose is superior to the others.
 The following superiority matrix shows the implied probability that the dose represented by the column has greater utility than the dose represented by the row:
 
 ```{r}
 efftox_superiority(fit)
 ```
-Thus, we can be quite sure that dose 4 has higher utility than doses 1 to 3, but we are rather more unsure about whteher it has higher utility than dose 5.
+Thus, we can be quite sure that dose 4 has higher utility than doses 1 to 3, but we are rather more unsure about whether it has higher utility than dose 5.
 This is confirmed by Figure \ref{fig:efftox_contours}.
 
 \pkg{trialr} also supports the calculation of dose-transition pathways for EffTox.
@@ -697,7 +702,7 @@ as_tibble(paths) %>%
   mutate(prob_obd_delta = prob_obd - parent_prob_obd) %>% 
   filter(dose_index == 5)
 ```
-In the example above for instance, although dose-level 5 is initially selected by the model as that most likely to be the OBD, that view can change dramatically based on the outcome of the next cohort of three, which will be treated at dose 3.
+In the example above for instance, we illustrate how the views on dose-level 5, in particular its chances of being the optimal dose, can change materially based on the outcome of the next cohort of three patients.
 This demonstrates the lack of information currently in the model in this situation, particularly the sensitivity of the estimated identity of the OBD to incidence of any toxicity.
 
 The left panel of Figure \ref{fig:efftox_dtps_graph} shows the paths for the next cohort of three.
@@ -717,8 +722,9 @@ Code to create these graphs appears in the Appendix.
 The function `efftox_dtps` also accepts a custom dose selection function via the `user_dose_func` parameter.
 The `fit` object recorded at each node in `paths` has type `efftox_fit`, a subclass of `dose_finding_fit`.
 The `user_dose_func` delegate should take an `efftox_fit` as the sole parameter and return an integer dose-level for the next patient, or `NA` to advocate stopping the trial, mirroring the behaviour of the CRM example.
+We do not illustrate that here.
 
-## Augmented Binary 
+## Augmented Binary method
 To demonstrate the two-period Augmented Binary method for single arm trials, we will fit it to a dataset drawn from one of the simulation scenarios used by \citet{Wason2013}.
 First, let us consider priors on the parameters.
 
@@ -755,7 +761,7 @@ diffuse_priors <- list(alpha_mean = 0, alpha_sd = 1,
                        gamma_d2_mean = 0, gamma_d2_sd = 1)
 ```
 
-Unit normal distributions may not immediately be regarded as diffuse until we consider their effect on the generated outcome distributions.
+Unit normal prior distributions may not immediately seem diffuse until we consider their effect on the generated outcome distributions.
 Prior predictive outcomes generated by each set of priors are shown in Figures \ref{fig:augbin_prior_pred_tumour} and \ref{fig:augbin_prior_pred_nsf}.
 Code to create these figures are included in the Appendix.
 
@@ -786,13 +792,13 @@ bind_rows(
   facet_wrap(~ Prior)
 ```
 
-Figure \ref{fig:augbin_prior_pred_tumour} shows the sampled log-tumour-size ratios with respect to baseline.
-We see that the diffuse priors generate a far wider set of outcomes.
+We see in Figure \ref{fig:augbin_prior_pred_tumour} that the diffuse priors generate a far wider set of outcomes.
 In fact, log-tumour-size ratios near 20 imply tumour growth that is many orders of magnitude greater than what is feasible.
-Growth to this extent would imply that the patient could increase their volume thousands of times over.
-The baseline tumour size are sampled from U(5, 10) cm so that the expected tumour size in each set of priors is 7.5cm.
+Growth to this extent would imply that the patient could increase their volume thousands of times over, a clear nonsense.
+The outcomes generated by the informative priors are much more realistic.
+The baseline tumour sizes in cm are sampled from a U(5, 10) distribution so that the expected tumour size in each set of priors is 7.5cm.
 Under the informative priors, the expected tumour size at each post-baseline assessment is 12.5cm.
-Under each set, the chances of tumour growth under the experimental treatment is roughly 50%.
+Under each set, the chances of tumour growth at each timepoint is roughly 50%.
 
 ```{r augbin_prior_pred_nsf, echo = FALSE, fig.cap="Prior predictive probabilities of non-shrinkage failure generated by two sets of prior parameters in the two-period AugBin model."}
 
@@ -806,7 +812,7 @@ bind_rows(
   facet_wrap(~ Prior)
 ```
 
-Figure \ref{fig:augbin_prior_pred_nsf} shows the prior predictive probabilities of non-shrinkage failure generated by two prior sets at the interim timepoint.
+Figure \ref{fig:augbin_prior_pred_nsf} shows the prior predictive probabilities of non-shrinkage failure generated by the two prior sets at the interim timepoint.
 Once again, we see that extreme outcomes are generated far too readily by the diffuse priors.
 In contrast, the informative priors generate probabilities that are roughly uniform and not associated with baseline tumour size.
 
@@ -852,7 +858,9 @@ fit_inf <- stan_augbin(tumour_size, non_shrinkage_failure,
 The object returned by `stan_fit` has type `augbin_fit`.
 
 The main benefit that Wason & Seaman identify for their method is the increase in efficiency that comes from analysing the continuous tumour size variable rather than dichotomising the information into a binary outcome.
-They compare widths of 95\% confidence intervals for the probability of success under their method and the binary dichotomisation, using 30\% shrinkage at time 2 and no non-shrinkage failure as the criteria for success.
+They calculate the width of the 95\% confidence interval (CI) for the probability of success under their method.
+They then do the same using the dichotomised binary success variables, $S_i$, using 30\% shrinkage at time 2 and no non-shrinkage failure as the criteria for success.
+They infer the increase in efficiency by comparing the widths of the CI under each method from a large number of simulated trials.
 We can recreate this type of analysis in \pkg{trialr}.
 Focusing on the model fit using the diffuse priors:
 
@@ -862,9 +870,9 @@ pred_diffuse %>% head()
 ```
 We see that the estimated probabilities of success are approximately 25\%, and vary slightly depending on the baseline and interim tumour size measurements.
 The `prob_success_samp` column contains the posterior samples of the probability of success for each patient.
-By default, `lower` and `upper` contain posterior 2.5\% and 97/5% quantiles of `prob_success` but this can be changed by specifying the desired quantile probabilities using the `probs` argument.
+By default, `lower` and `upper` contain posterior 2.5\% and 97.5% quantiles of `prob_success` but this can be changed by specifying the desired quantile probabilities using the `probs` argument.
 
-We can also make inferences by analysing the dichotomised binary outcome using the \pkg{binom} \citep{binom} package:
+We can also make inferences by analysing the dichotomised binary outcome:
 
 ```{r}
 pred_binary <- binary_prob_success(fit_diffuse, y2_upper = log(0.7), 
@@ -872,17 +880,19 @@ pred_binary <- binary_prob_success(fit_diffuse, y2_upper = log(0.7),
 pred_binary
 ```
 
+This function uses the \pkg{binom} \citep{binom} package.
+
 We see that there were 14 responses in 50 patients, yielding a response rate of 28\%.
-Again, the default width of this frequentist confidence interval is 95\%.
-The average decrease in the widths of the 95\% uncertainty intervals is:
+By default, bounds for the 95\% CI are shown but this can be tailored.
+The average decrease in the widths of the 95\% intervals is:
 
 ```{r}
 mean(pred_diffuse$ci_width) / pred_binary$ci_width - 1
 ```
 
-The reduction of approximately 24\% in this single simulated iteration is higher than the 16.5\% average reduction reported by Wason & Seaman comparing AugBin to the regular binary method following a simulation study.
+The reduction of approximately 23\% in this single simulated iteration is higher than the 16.5\% average reduction reported by Wason & Seaman comparing AugBin to the regular binary method in this scenario.
 
-```{r post_pred_augbin, echo = FALSE, fig.cap="Posterior predictions from the AugBin model to 50 simulated patients under two different sets of priors."}
+```{r post_pred_augbin, echo = FALSE, fig.cap="Posterior predictions from the AugBin model to 50 simulated patients under two different sets of priors. The orange lines show the mean and 0.95 CI derived from the binary success variables."}
 pred_inf <- predict(fit_inf, y2_upper = log(0.7))
 
 pred_diffuse %>% 
@@ -923,9 +933,9 @@ The average credible interval width under the informative priors is `r round(abs
 This suggests the strong effect the priors are having.
 
 Comparing the two sets of fitted values from the AugBin models, we see that the estimates are generally a few percent lower under the informtive priors.
-In fact, a simulation study with 1000 iterations reveals that the estimated probabilities of success under these informative priors are biased downwards by 4.5\% on average, and that the coverage of 95\% posterior credible intervals is only 71.7\%.
+In fact, a simulation study with 1,000 iterations reveals that the estimated probabilities of success under these informative priors are biased downwards by 4.5\% on average, and that the coverage of 95\% posterior credible intervals is only 71.7\%.
 In contrast, simulations under the diffuse priors reveal downward bias of approximately 1.5\% and 95\% posterior interval coverage of 92.7\%, much closer to the nominal value.
-Code to run the simulation study appears in the GitHub repository of this article at https://github.com/brockk/trialr-jss
+Code to run the simulation study appears in the GitHub repository of this article at https://github.com/brockk/trialr-jss.
 
 As an \proglang{R}-user might expect, the `predict` function allows the specification of `newdata` to obtain predictions for custom cases:
 
@@ -946,10 +956,10 @@ Without posterior samples, that calculation would have been more challenging.
 
 The other core tenets of our approach include using modern `tidyverse` \citep{tidyverse} classes and methods and relying on visualisation to convey insights.
 By using \pkg{tidybayes} \citep{tidybayes}, posterior samples are available in tidy formats, convenient for further analysis via \pkg{dplyr} \citep{dplyr} and \pkg{purrr} \citep{purrr} functions, as we have demonstrated in several examples.
-We have incldued plots using \pkg{ggplot2} \citep{ggplot2} and graphs using \pkg{DiagrammeR} \citep{DiagrammeR}.
+We have included plots using \pkg{ggplot2} \citep{ggplot2} and graphs using \pkg{DiagrammeR} \citep{DiagrammeR}.
 
 We have demonstrated functions and classes dedicated to calculating dose transition pathways in dose-finding trials.
-Our approach works not just for CRM and EffTox but for general phase I and phase I/II designs.
+Our approach will work not just for CRM and EffTox but for general phase I and phase I/II designs.
 In future releases of \pkg{trialr}, we will provide the same funcionality for the Escalation with Overdose Control design \citep{Tighiouart2010} and the seamless phase I/II design of \citet{Wages2014}.
 Calculating dose paths for Wages & Tait's design may initially seem questionable because their method uses adaptive randomisation to allocate patients to doses inferred to be tolerable.
 If the dose recommended is random, what point is there in considering future paths?
@@ -967,23 +977,23 @@ Nevertheless, simulations remain a key tool for clinical trialists to justify th
 
 We also demonstrated in this manuscript the AugBin model of \citet{Wason2013} for single-arm trials.
 The authors also include a two-arm version suitable for randomised trials.
-The authors also latterly introduced versions of the model suitable for trials with an arbitrary number of post-baseline assessments.
+They also latterly introduced versions of the model suitable for trials with an arbitrary number of post-baseline assessments.
 These variants are not currently in \pkg{trialr} but they will be added in the future, supporting the same generic functions.
 
 We investigated two sets of priors with the AugBin model.
 The diffuse priors we used could hardly be described as generative or representing any reasonable person's beliefs because they yield prior predictive outcomes that are plainly implausible.
 However, our informative priors that are broadly generative of plausible outcomes a-priori, exhibit possibly undesirable numerical performance, with relatively large bias and low interval coverage.
-Knowing how to set priors for this Bayesian version of the AugBin model is an area worthy of further research.
+Learning how to set priors for this Bayesian version of the AugBin model is an area worthy of further research.
 
 Despite being an \proglang{R} package, the \proglang{Stan} implementations of the models in \pkg{trialr} can be used with \pkg{StataStan} and \pkg{PyStan} to fit the models in \proglang{Stata} and \proglang{Python} respectively.
 
-\pkg{trialr} was first added to CRAN in Nov-2017 and is available at https://CRAN.R-project.org/package=trialr. 
+\pkg{trialr} is available at https://CRAN.R-project.org/package=trialr. 
 Source code is available on GitHub at https://github.com/brockk/trialr.
 The source for this article is available at https://github.com/brockk/trialr-jss.
 
 # Acknowledgements
 The \pkg{trialr} package benefited from the comments of anonymous peer-reviewers when it was presentated at StanCon, Helsinki, 2018.
-The author extends to them their gratitude.
+The author thanks those reviewers.
 
 
 
@@ -1107,6 +1117,91 @@ prior_fits2 %>%
   theme(legend.position = 'bottom')
 ```
 
+The following code creates Figure \ref{fig:efftox_dtps_graph}.
+
+```{r, eval=FALSE}
+outcomes <- '1NNN 2ENN'
+
+# Left-hand plot
+paths <- efftox_dtps(cohort_sizes = c(3), previous_outcomes = outcomes, 
+                     real_doses = c(1.0, 2.0, 4.0, 6.6, 10.0),
+                     efficacy_hurdle = 0.5, toxicity_hurdle = 0.3,
+                     p_e = 0.1, p_t = 0.1, eff0 = 0.5, tox1 = 0.65,
+                     eff_star = 0.7, tox_star = 0.25,
+                     alpha_mean = -7.9593, alpha_sd = 3.5487,
+                     beta_mean = 1.5482, beta_sd = 3.5018,
+                     gamma_mean = 0.7367, gamma_sd = 2.5423,
+                     zeta_mean = 3.4181, zeta_sd = 2.4406,
+                     eta_mean = 0, eta_sd = 0.2,
+                     psi_mean = 0, psi_sd = 1, 
+                     next_dose = 3, seed = 123, refresh = 0)
+
+paths_df <- as_tibble(paths)
+paths_df %>%
+  transmute(id = .node,
+            type = NA,
+            label = case_when(
+              is.na(next_dose) ~ 'Stop',
+              TRUE ~ next_dose %>% as.character()),
+            shape = 'circle',
+            fillcolor = case_when(
+              next_dose == 1 ~ 'slategrey',
+              next_dose == 2 ~ 'skyblue1',
+              next_dose == 3 ~ 'royalblue1',
+              next_dose == 4 ~ 'orchid4',
+              next_dose == 5 ~ 'royalblue4',
+              is.na(next_dose) ~ 'red'
+            )
+  ) -> nodes_df
+
+paths_df %>% 
+  filter(!is.na(.parent)) %>% 
+  select(from = .parent, to = .node, label = outcomes) %>% 
+  mutate(rel = "leading_to") -> edges_df
+
+graph <- create_graph(nodes_df = nodes_df, edges_df = edges_df)
+render_graph(graph)
+
+# Right-hand plot
+paths <- efftox_dtps(cohort_sizes = c(1, 1), previous_outcomes = outcomes, 
+                     next_dose = 3, real_doses = c(1.0, 2.0, 4.0, 6.6, 10.0),
+                     efficacy_hurdle = 0.5, toxicity_hurdle = 0.3,
+                     p_e = 0.1, p_t = 0.1, eff0 = 0.5, tox1 = 0.65,
+                     eff_star = 0.7, tox_star = 0.25,
+                     alpha_mean = -7.9593, alpha_sd = 3.5487,
+                     beta_mean = 1.5482, beta_sd = 3.5018,
+                     gamma_mean = 0.7367, gamma_sd = 2.5423,
+                     zeta_mean = 3.4181, zeta_sd = 2.4406,
+                     eta_mean = 0, eta_sd = 0.2,
+                     psi_mean = 0, psi_sd = 1, 
+                     seed = 123, refresh = 2000)
+paths_df <- as_tibble(paths)
+
+paths_df %>%
+  transmute(id = .node,
+            type = NA,
+            label = case_when(
+              is.na(next_dose) ~ 'Stop',
+              TRUE ~ next_dose %>% as.character()),
+            shape = 'circle',
+            fillcolor = case_when(
+              next_dose == 1 ~ 'slategrey',
+              next_dose == 2 ~ 'skyblue1',
+              next_dose == 3 ~ 'royalblue1',
+              next_dose == 4 ~ 'orchid4',
+              next_dose == 5 ~ 'royalblue4',
+              is.na(next_dose) ~ 'red'
+            )
+  ) -> nodes_df
+
+paths_df %>% 
+  filter(!is.na(.parent)) %>% 
+  select(from = .parent, to = .node, label = outcomes) %>% 
+  mutate(rel = "leading_to") -> edges_df
+
+graph <- create_graph(nodes_df = nodes_df, edges_df = edges_df)
+render_graph(graph)
+```
 
 ## Reproducing Figures in AugBin sections
 

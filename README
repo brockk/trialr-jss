@@ -1,3 +1,19 @@
+
+# Instructions
+The script RecreateResults.R recreates all of the results and plots used in the manuscript.
+The script Simulate.R runs the two simulation scenarios using the Augmented Binary model that are quoted in the manuscript.
+
+The trialr package is available from CRAN at
+https://CRAN.R-project.org/package=trialr
+
+and GitHub at
+https://github.com/brockk/trialr
+
+
+
+
+
+# Call for papers from JSS
 The Journal of Statistical Software (JSS) now reached an impact factor of over 22, and recently ended highest in the category “statistics and probability” on the ISI web of knowledge ranking.
 
 Special issues of JSS are very popular and get a lot of citations. We now invite papers for a special issue of the Journal of Statistical Software on “Bayesian Statistics”. The conditions are the regular ones of JSS submissions [1], but the special issue aims at bringing together articles presenting open-source software developed by the authors focusing on (but not limited to) the following topics:
