@@ -450,7 +450,7 @@ gridExtra::grid.arrange(aubgin_diffuse_plot, aubgin_inf_plot, ncol = 2)
 
 
 predict(fit_diffuse, newdata = data.frame(z0 = 5:10, z1 = 4:9), 
-y2_upper = log(0.7))
+        y2_upper = log(0.7))
 
 
 
